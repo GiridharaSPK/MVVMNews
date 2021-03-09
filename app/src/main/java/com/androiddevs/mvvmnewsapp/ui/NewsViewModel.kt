@@ -11,10 +11,16 @@ import kotlinx.coroutines.launch
 import retrofit2.Response
 
 class NewsViewModel(val newsRepository: NewsRepository) :
-    ViewModel() { //cannot use constructor param in viewmodel - viewmodelprovider factory to tell how viewmodel need to be created
+    ViewModel() { //cannot use constructor param in ViewModel - viewModelProvider factory to tell how viewmodel need to be created
     val TAG = "NewsViewModel"
     val breakingNews: MutableLiveData<Resource<NewsResponse>> = MutableLiveData()
     var breakingNewsPage = 1
+
+    val searchNews: MutableLiveData<Resource<NewsResponse>> = MutableLiveData()
+    var searchNewsPage = 1
+
+    val savedNews: MutableLiveData<Resource<NewsResponse>> = MutableLiveData()
+    var savedNewsPage = 1
 
     init {
         getBreakingNews("in")
@@ -39,5 +45,22 @@ class NewsViewModel(val newsRepository: NewsRepository) :
         }
         return Resource.Error(response.message())
     }
+
+    fun searchNews(searchQuery: String) = viewModelScope.launch {
+        searchNews.postValue(Resource.Loading())
+        val response = newsRepository.searchNews(searchQuery, searchNewsPage)
+        searchNews.postValue(handleSearchNewsResponse(response))
+
+    }
+
+    private fun handleSearchNewsResponse(response: Response<NewsResponse>): Resource<NewsResponse> {
+        if (response.isSuccessful) {
+            response.body()?.let {
+                return Resource.Success(it)
+            }
+        }
+        return Resource.Error(response.message())
+    }
+
 
 }
